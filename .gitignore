@@ -1,1 +1,7 @@
 config.yml
+__pycache__/
+*.py[cod]
+.pytest_cache/
+metrics.sqlite3
+snapshots/DOCSIS_*
+*.egg-info/

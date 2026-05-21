@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vodafone-station-prometheus-exporter"
+version = "0.1.0"
+description = "Prometheus exporter for DOCSIS status from Vodafone Station routers"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "Flask>=3.0",
+    "PyYAML>=6.0",
+    "requests>=2.31",
+]
+
+[project.scripts]
+vodafone-station-exporter = "vodafone_station_exporter.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["vodafone_station_exporter*"]
