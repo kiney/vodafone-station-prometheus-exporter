@@ -3,6 +3,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 metrics.sqlite3
-snapshots/DOCSIS_*
+snapshots/
 *.egg-info/
 metrics.sqlite3.before-normalized-migration
