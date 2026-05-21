@@ -37,6 +37,7 @@ After installation the command is available as:
 
 ```bash
 vodafone-station-exporter --help
+vodafone-station-report --help
 ```
 
 Activate the virtualenv before running the command when you installed into a
@@ -106,6 +107,17 @@ vodafone-station-exporter --debug-login
 ```
 
 The diagnostic output is sanitized and does not print the configured password.
+
+Report the health status from a SQLite history:
+
+```bash
+vodafone-station-report metrics.sqlite3
+vodafone-station-report metrics.sqlite3 --hours 24
+```
+
+The report summarizes scrape success, channel counts, downstream lock/SNR
+problems, upstream ranging or transmit-power issues, and notable drift or
+modulation changes. It exits with status `1` for a critical report.
 
 ## HTTP Endpoints
 

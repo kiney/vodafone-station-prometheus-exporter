@@ -17,6 +17,7 @@ dependencies = [
 
 [project.scripts]
 vodafone-station-exporter = "vodafone_station_exporter.__main__:main"
+vodafone-station-report = "vodafone_station_exporter.report_cli:main"
 
 [tool.setuptools.packages.find]
 include = ["vodafone_station_exporter*"]
