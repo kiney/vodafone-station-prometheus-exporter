@@ -3,7 +3,7 @@
 Small Python daemon that logs in to a Vodafone Station cable router, scrapes the
 DOCSIS status API, and exposes the latest values as Prometheus metrics.
 
-The exporter also writes raw DOCSIS snapshots to `snapshots/` and can store a
+The exporter also writes DOCSIS text snapshots to `snapshots/` and can store a
 compact scrape history in SQLite.
 
 ## Status
@@ -36,16 +36,17 @@ python3 -m venv .venv
 After installation the command is available as:
 
 ```bash
-.venv/bin/vodafone-station-exporter --help
+vodafone-station-exporter --help
 ```
 
-If your shell has the virtualenv on `PATH`, `vodafone-station-exporter` is
-enough.
+Activate the virtualenv before running the command when you installed into a
+venv.
 
 ## Configuration
 
-Create `config.yml` in the repository root. This file contains router
-credentials and is intentionally ignored by git.
+Create `config.yml` in the directory where you start the exporter. If no
+`--config` argument is given, the exporter reads `./config.yml`. This file
+contains router credentials and is intentionally ignored by git.
 
 Minimal example:
 
@@ -66,7 +67,7 @@ password: xxx                  # required for authenticated router API
 interval: 60                   # background scrape interval in seconds
 host: 0.0.0.0                  # Flask bind host
 port: 8000                     # Flask bind port
-snapshot_dir: snapshots        # raw successful DOCSIS responses
+snapshot_dir: snapshots        # successful DOCSIS text snapshots
 sqlite_path: metrics.sqlite3   # set to null or "" to disable SQLite logging
 request_timeout: 10            # router HTTP timeout in seconds
 verify_tls: true               # relevant only for HTTPS base_url
@@ -90,20 +91,20 @@ already starts with the tested Vodafone Station JSON endpoint.
 Run the daemon:
 
 ```bash
-.venv/bin/vodafone-station-exporter --config config.yml
+vodafone-station-exporter
 ```
 
 Scrape once and print Prometheus text:
 
 ```bash
-.venv/bin/vodafone-station-exporter --config config.yml --once
+vodafone-station-exporter --once
 ```
 
 Diagnostic commands:
 
 ```bash
-.venv/bin/vodafone-station-exporter --config config.yml --discover
-.venv/bin/vodafone-station-exporter --config config.yml --debug-login
+vodafone-station-exporter --discover
+vodafone-station-exporter --debug-login
 ```
 
 The diagnostic output is sanitized and does not print the configured password.
@@ -148,11 +149,14 @@ Channel metrics include labels such as `channel_id`, `channel_type`,
 
 ## Storage
 
-On each successful scrape, the raw router response is written to:
+On each successful scrape, a text snapshot is written to:
 
 ```text
 snapshots/DOCSIS_<timestamp>
 ```
+
+The snapshot format matches the older manually copied DOCSIS examples in this
+repository rather than the router's raw JSON API response.
 
 If `sqlite_path` is enabled, every scrape attempt is recorded in the `scrapes`
 table with timestamp, success flag, error text, channel counts, and parsed JSON
@@ -172,5 +176,9 @@ scrape_configs:
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 -m py_compile vodafone_station_exporter/*.py tests/test_docsis.py
+python3 -m py_compile vodafone_station_exporter/*.py tests/*.py
 ```
+
+## License
+
+WTFPL, see `LICENSE`.

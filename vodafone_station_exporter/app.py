@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime
+import json
 import logging
+import signal
 import threading
 from zoneinfo import ZoneInfo
 
 from flask import Flask, Response, jsonify
+from werkzeug.serving import make_server
 
 from .config import Config
-import json
-
 from .docsis import DocsisStatus, parse_docsis_json, parse_docsis_status
 from .metrics import render_metrics
 from .scraper import RouterScraper
-from .storage import SqliteLog, write_snapshot
+from .storage import SqliteLog, render_snapshot, write_snapshot
 
 
 LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class ExporterState:
             status = _parse_raw_status(raw)
             if status.total_channels == 0:
                 raise ValueError("DOCSIS page fetched but no channels were parsed")
-            write_snapshot(self.config.snapshot_dir, scraped_at, raw)
+            write_snapshot(self.config.snapshot_dir, scraped_at, render_snapshot(status))
             LOGGER.info("scraped %s DOCSIS channels from %s", status.total_channels, result.url)
         except Exception as exc:
             error = str(exc)
@@ -98,6 +99,33 @@ def start_background_scraper(state: ExporterState) -> threading.Event:
     thread = threading.Thread(target=run, name="docsis-scraper", daemon=True)
     thread.start()
     return stop_event
+
+
+def run_daemon(config: Config) -> None:
+    app = create_app(config)
+    state = app.config["EXPORTER_STATE"]
+    stop_event = start_background_scraper(state)
+    server = make_server(config.host, config.port, app)
+
+    def shutdown(signum: int, frame: object) -> None:
+        _request_shutdown(stop_event, server, signum)
+
+    previous_sigterm = signal.signal(signal.SIGTERM, shutdown)
+    previous_sigint = signal.signal(signal.SIGINT, shutdown)
+    try:
+        server.serve_forever()
+    finally:
+        stop_event.set()
+        signal.signal(signal.SIGTERM, previous_sigterm)
+        signal.signal(signal.SIGINT, previous_sigint)
+
+
+def _request_shutdown(stop_event: threading.Event, server: object, signum: int) -> threading.Thread:
+    LOGGER.info("received signal %s, shutting down", signum)
+    stop_event.set()
+    thread = threading.Thread(target=server.shutdown, name="http-shutdown", daemon=True)
+    thread.start()
+    return thread
 
 
 def _parse_raw_status(raw: str) -> DocsisStatus:

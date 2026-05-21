@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import argparse
 import logging
-import signal
 
-from .app import create_app, start_background_scraper
+from .app import create_app, run_daemon
 from .config import Config
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Vodafone Station DOCSIS Prometheus exporter")
-    parser.add_argument("--config", default="config.yml", help="YAML config file path")
+    parser.add_argument("--config", default="config.yml", help="YAML config file path (default: ./config.yml)")
     parser.add_argument("--once", action="store_true", help="scrape once and print metrics")
     parser.add_argument("--discover", action="store_true", help="probe known router endpoints without printing secrets")
     parser.add_argument("--save-login-page", help="write the router login HTML to this path for local inspection")
@@ -47,21 +46,17 @@ def main() -> None:
             print(line)
         return
 
-    app = create_app(config)
-    state = app.config["EXPORTER_STATE"]
-
     if args.once:
         from .metrics import render_metrics
 
+        app = create_app(config)
+        state = app.config["EXPORTER_STATE"]
         state.scrape()
         status, scraped_at, error = state.snapshot()
         print(render_metrics(status, scraped_at, error), end="")
         return
 
-    stop_event = start_background_scraper(state)
-    signal.signal(signal.SIGTERM, lambda *_: stop_event.set())
-    signal.signal(signal.SIGINT, lambda *_: stop_event.set())
-    app.run(host=config.host, port=config.port)
+    run_daemon(config)
 
 
 if __name__ == "__main__":
