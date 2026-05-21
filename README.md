@@ -71,20 +71,18 @@ snapshot_dir: snapshots        # successful DOCSIS text snapshots
 sqlite_path: metrics.sqlite3   # set to null or "" to disable SQLite logging
 request_timeout: 10            # router HTTP timeout in seconds
 verify_tls: true               # relevant only for HTTPS base_url
+docsis_path: /api/v1/sta_docsis_status  # normally do not change this
 ```
 
-Advanced endpoint override:
+Endpoint override:
 
 ```yaml
 docsis_path: /api/v1/sta_docsis_status
-docsis_paths:
-  - /api/v1/sta_docsis_status
-  - /php/status_docsis_data.php
-  - /status_docsis_data.php
 ```
 
-Normally you do not need `docsis_path` or `docsis_paths`; the default list
-already starts with the tested Vodafone Station JSON endpoint.
+The exporter scrapes exactly this one endpoint. If it returns a login page, an
+HTTP error, or a non-DOCSIS response, the scrape fails with a clear error
+instead of probing fallback URLs.
 
 ## Usage
 

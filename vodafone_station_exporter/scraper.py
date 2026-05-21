@@ -20,11 +20,42 @@ class ScrapeResult:
 class RouterScraper:
     def __init__(self, config: Config) -> None:
         self.config = config
-        self.session = requests.Session()
-        self.session.headers.update(
+        self.session = self._new_session()
+        self._logged_in = False
+        self._csrf_token = ""
+
+    def fetch_docsis(self) -> ScrapeResult:
+        last_error: Exception | None = None
+        for login_mode in ("current", "login", "fresh_login"):
+            try:
+                if login_mode == "login":
+                    self._login()
+                elif login_mode == "fresh_login":
+                    self._reset_session()
+                    self._login()
+            except Exception as exc:
+                last_error = exc
+                if login_mode == "login" and self.config.password:
+                    continue
+                raise RuntimeError(f"could not fetch DOCSIS status: {exc}") from exc
+
+            try:
+                return self._fetch_docsis()
+            except _LoginRequired as exc:
+                last_error = exc
+                self._logged_in = False
+                if not self.config.password:
+                    break
+            except Exception as exc:  # requests exposes several subclasses here.
+                raise RuntimeError(f"could not fetch DOCSIS status: {exc}") from exc
+        raise RuntimeError(f"could not fetch DOCSIS status: {last_error}") from last_error
+
+    def _new_session(self) -> requests.Session:
+        session = requests.Session()
+        session.headers.update(
             {
                 "Accept": "application/json, text/javascript, */*; q=0.01",
-                "Referer": config.base_url,
+                "Referer": self.config.base_url,
                 "User-Agent": (
                     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                     "(KHTML, like Gecko) Chrome/125.0 Safari/537.36"
@@ -32,37 +63,33 @@ class RouterScraper:
                 "X-Requested-With": "XMLHttpRequest",
             }
         )
+        return session
+
+    def _reset_session(self) -> None:
+        self.session.close()
+        self.session = self._new_session()
         self._logged_in = False
         self._csrf_token = ""
 
-    def fetch_docsis(self) -> ScrapeResult:
-        last_error: Exception | None = None
-        for logged_in in (False, True):
-            if logged_in:
-                self._login()
-            for path in self.config.docsis_paths:
-                url = urljoin(self.config.base_url, path.lstrip("/"))
-                try:
-                    response = self.session.get(
-                        url,
-                        timeout=self.config.request_timeout,
-                        verify=self.config.verify_tls,
-                    )
-                    if response.status_code in {401, 403} and not logged_in:
-                        last_error = RuntimeError(f"{url} requires login")
-                        break
-                    response.raise_for_status()
-                    if _has_docsis_content(response.text):
-                        return ScrapeResult(url=url, body=response.text)
-                    parsed = _try_parse_docsis_api(response)
-                    if parsed:
-                        return ScrapeResult(url=url, body=parsed)
-                    last_error = ValueError(f"{url} did not contain DOCSIS status")
-                except Exception as exc:  # requests exposes several subclasses here.
-                    last_error = exc
-        if last_error is None:
-            raise RuntimeError("no DOCSIS paths configured")
-        raise RuntimeError(f"could not fetch DOCSIS status: {last_error}") from last_error
+    def _fetch_docsis(self) -> ScrapeResult:
+        url = urljoin(self.config.base_url, self.config.docsis_path.lstrip("/"))
+        response = self.session.get(
+            url,
+            timeout=self.config.request_timeout,
+            verify=self.config.verify_tls,
+        )
+        if _looks_like_login_required(response):
+            raise _LoginRequired(f"{url} requires login")
+        response.raise_for_status()
+        parsed = _try_parse_docsis_api(response)
+        if parsed:
+            return ScrapeResult(url=url, body=parsed)
+        if _has_docsis_content(response.text):
+            return ScrapeResult(url=url, body=response.text)
+        raise ValueError(
+            f"{url} did not contain DOCSIS status "
+            f"(status={response.status_code}, content_type={response.headers.get('content-type', '')!r})"
+        )
 
     def _login(self, logout_other_session: bool = False) -> None:
         if self._logged_in:
@@ -144,6 +171,27 @@ def _has_docsis_content(text: str) -> bool:
     return "docsis" in lowered and ("downstream" in lowered or "downstream-kanäle" in lowered)
 
 
+def _looks_like_login_required(response: requests.Response) -> bool:
+    if response.status_code in {401, 403}:
+        return True
+    content_type = response.headers.get("content-type", "")
+    if "json" in content_type.casefold():
+        try:
+            payload = response.json()
+        except ValueError:
+            return False
+        if isinstance(payload, dict):
+            message = str(payload.get("message", "") or payload.get("error", "")).casefold()
+            return any(marker in message for marker in ("login", "auth", "session"))
+        return False
+    lowered = response.text.casefold()
+    return (
+        "<form" in lowered
+        and "password" in lowered
+        and ("login" in lowered or "anmelden" in lowered)
+    )
+
+
 def _try_parse_docsis_api(response: requests.Response) -> str | None:
     content_type = response.headers.get("content-type", "")
     if "json" not in content_type.casefold():
@@ -159,3 +207,7 @@ def _try_parse_docsis_api(response: requests.Response) -> str | None:
 
 def _pbkdf2_hex(password: str, salt: str) -> str:
     return hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 1000, dklen=16).hex()
+
+
+class _LoginRequired(RuntimeError):
+    pass

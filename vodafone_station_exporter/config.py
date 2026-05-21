@@ -1,22 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 
-DEFAULT_DOCSIS_PATHS = (
-    "/api/v1/sta_docsis_status",
-    "/php/status_docsis_data.php",
-    "/status_docsis_data.php",
-    "/",
-    "/docsis.html",
-    "/status_docsis.html",
-    "/data/status_docsis.json",
-    "/cgi-bin/status_docsis",
-)
+DEFAULT_DOCSIS_PATH = "/api/v1/sta_docsis_status"
 
 
 @dataclass(frozen=True)
@@ -27,8 +18,7 @@ class Config:
     interval: int = 60
     port: int = 8000
     host: str = "0.0.0.0"
-    docsis_path: str | None = None
-    docsis_paths: tuple[str, ...] = field(default_factory=lambda: DEFAULT_DOCSIS_PATHS)
+    docsis_path: str = DEFAULT_DOCSIS_PATH
     snapshot_dir: Path = Path("snapshots")
     sqlite_path: Path | None = Path("metrics.sqlite3")
     request_timeout: float = 10.0
@@ -48,18 +38,6 @@ class Config:
         if not base_url:
             raise ValueError("config value 'base_url' is required")
 
-        configured_paths = raw.get("docsis_paths")
-        if configured_paths is None:
-            docsis_paths = DEFAULT_DOCSIS_PATHS
-        elif isinstance(configured_paths, list):
-            docsis_paths = tuple(str(item) for item in configured_paths)
-        else:
-            raise ValueError("config value 'docsis_paths' must be a list")
-
-        docsis_path = raw.get("docsis_path")
-        if docsis_path:
-            docsis_paths = (str(docsis_path), *tuple(path for path in docsis_paths if path != docsis_path))
-
         sqlite_path = raw.get("sqlite_path", "metrics.sqlite3")
         if sqlite_path in ("", None, False):
             db_path = None
@@ -73,8 +51,7 @@ class Config:
             interval=int(raw.get("interval", 60)),
             port=int(raw.get("port", 8000)),
             host=str(raw.get("host", "0.0.0.0")),
-            docsis_path=_optional_str(docsis_path),
-            docsis_paths=docsis_paths,
+            docsis_path=str(raw.get("docsis_path", DEFAULT_DOCSIS_PATH)),
             snapshot_dir=Path(str(raw.get("snapshot_dir", "snapshots"))),
             sqlite_path=db_path,
             request_timeout=float(raw.get("request_timeout", 10.0)),
