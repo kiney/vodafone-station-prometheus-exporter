@@ -5,3 +5,4 @@ __pycache__/
 metrics.sqlite3
 snapshots/DOCSIS_*
 *.egg-info/
+metrics.sqlite3.before-normalized-migration

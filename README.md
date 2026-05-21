@@ -158,9 +158,11 @@ snapshots/DOCSIS_<timestamp>
 The snapshot format matches the older manually copied DOCSIS examples in this
 repository rather than the router's raw JSON API response.
 
-If `sqlite_path` is enabled, every scrape attempt is recorded in the `scrapes`
-table with timestamp, success flag, error text, channel counts, and parsed JSON
-payload for successful scrapes.
+If `sqlite_path` is enabled, every scrape attempt is recorded in SQLite. The
+`scrapes` table contains the timestamp, success flag, error text, and channel
+counts. Parsed channel values are stored as rows in `downstream_channels` and
+`upstream_channels`, keyed by `scrape_id`, so values such as SNR, power, lock
+state, and ranging state can be queried directly with SQL.
 
 ## Prometheus Example
 
