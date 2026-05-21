@@ -1,0 +1,44 @@
+DOCSIS Status
+Verschaffen Sie sich einen Überblick über alle DOCSIS-Parameter Ihres Routers.
+Downstream-Kanäle
+Kanal ID 	Kanaltyp 	Frequenz (MHz) 	Modulation 	Empf. Signalstärke (dBmV/dBµV) 	SNR/MER (dB) 	Lock Status
+33 	OFDM 	135~325.0 	256-qam 	7.8/67.8 	39.94 	JA
+15 	SC-QAM 	674 	256-QAM 	14.4/74.4  	42.0 	JA
+1 	SC-QAM 	114 	256-QAM 	7.7/67.7  	38.4 	JA
+2 	SC-QAM 	130 	256-QAM 	8.4/68.4  	39.2 	JA
+3 	SC-QAM 	570 	256-QAM 	10.6/70.6  	40.6 	JA
+4 	SC-QAM 	578 	256-QAM 	11.5/71.5  	41.2 	JA
+5 	SC-QAM 	586 	256-QAM 	11.5/71.5  	41.2 	JA
+6 	SC-QAM 	594 	256-QAM 	11.5/71.5  	41.1 	JA
+7 	SC-QAM 	602 	256-QAM 	12.0/72  	41.2 	JA
+8 	SC-QAM 	618 	256-QAM 	12.3/72.3  	41.4 	JA
+9 	SC-QAM 	626 	256-QAM 	13.1/73.1  	41.7 	JA
+10 	SC-QAM 	634 	256-QAM 	13.1/73.1  	41.8 	JA
+11 	SC-QAM 	642 	256-QAM 	12.7/72.7  	41.5 	JA
+12 	SC-QAM 	650 	256-QAM 	13.3/73.3  	41.6 	JA
+13 	SC-QAM 	658 	256-QAM 	13.7/73.7  	42.0 	JA
+14 	SC-QAM 	666 	256-QAM 	13.6/73.6  	41.8 	JA
+16 	SC-QAM 	682 	256-QAM 	14.9/74.9  	42.4 	JA
+17 	SC-QAM 	690 	256-QAM 	14.9/74.9  	42.3 	JA
+18 	SC-QAM 	698 	64-QAM 	9.1/69.1  	36.8 	JA
+19 	SC-QAM 	706 	64-QAM 	9.8/69.8  	37.2 	JA
+20 	SC-QAM 	714 	64-QAM 	9.8/69.8  	37.2 	JA
+21 	SC-QAM 	722 	64-QAM 	9.9/69.9  	37.2 	JA
+22 	SC-QAM 	730 	64-QAM 	11.4/71.4  	38.3 	JA
+23 	SC-QAM 	738 	64-QAM 	11.4/71.4  	38.3 	JA
+24 	SC-QAM 	746 	64-QAM 	10.7/70.7  	37.6 	JA
+25 	SC-QAM 	754 	64-QAM 	11.3/71.3  	37.7 	JA
+26 	SC-QAM 	762 	64-QAM 	11.8/71.8  	37.8 	JA
+27 	SC-QAM 	770 	64-QAM 	11.6/71.6  	37.9 	JA
+28 	SC-QAM 	778 	64-QAM 	12.1/72.1  	38.2 	JA
+29 	SC-QAM 	786 	64-QAM 	12.9/72.9  	38.2 	JA
+30 	SC-QAM 	794 	64-QAM 	13.4/73.4  	38.1 	JA
+31 	SC-QAM 	802 	64-QAM 	13.6/73.6  	38.4 	JA
+32 	SC-QAM 	810 	64-QAM 	13.3/73.3  	37.6 	JA
+Upstream-Kanäle
+Kanal ID 	Kanaltyp 	Frequenz (MHz) 	Modulation 	Send. Signalstärke (dBmV/dBµV) 	Ranging Status
+10 	OFDMA 	29.8~ 	16-qam 	29.3/89.3 	Erfolgreich
+5 	SC-QAM 	51.0 	64-qam 	37.5/97.5 	Erfolgreich
+6 	SC-QAM 	44.6 	64-qam 	35.5/95.5 	Erfolgreich
+7 	SC-QAM 	37.2 	64-qam 	37.5/97.5 	Erfolgreich
+8 	SC-QAM 	30.8 	64-qam 	36.5/96.5 	Erfolgreich
