@@ -56,7 +56,7 @@ base_url: http://192.168.0.1/
 username: admin
 password: xxx
 interval: 60
-port: 8000
+port: 8018
 ```
 
 Supported values:
@@ -67,7 +67,7 @@ username: admin                # defaults to admin if omitted for login
 password: xxx                  # required for authenticated router API
 interval: 60                   # background scrape interval in seconds
 host: 0.0.0.0                  # Flask bind host
-port: 8000                     # Flask bind port
+port: 8018                     # Flask bind port
 snapshot_dir: snapshots        # successful DOCSIS text snapshots
 sqlite_path: metrics.sqlite3   # set to null or "" to disable SQLite logging
 request_timeout: 10            # router HTTP timeout in seconds
@@ -128,6 +128,29 @@ modulation changes. It exits with status `1` for a critical report.
 The daemon performs an initial scrape immediately after startup, then repeats it
 every `interval` seconds.
 
+## Docker
+
+Build the image:
+
+```bash
+docker build -t vodafone-station-exporter .
+```
+
+Run it with separate volumes for configuration and runtime data:
+
+```bash
+docker run --rm \
+  -p 8018:8018 \
+  -v vodafone-station-config:/config \
+  -v vodafone-station-data:/data \
+  vodafone-station-exporter
+```
+
+The container reads `/config/config.yml` and uses `/data` as its working
+directory, so relative `snapshot_dir` and `sqlite_path` values are written to the
+data volume. Put at least `base_url` and `password` in the mounted config file;
+if `port` is omitted, the exporter listens on `8018`.
+
 ## Metrics
 
 Core scrape state:
@@ -181,7 +204,7 @@ scrape_configs:
   - job_name: vodafone_station
     static_configs:
       - targets:
-          - localhost:8000
+          - localhost:8018
 ```
 
 ## Development Checks

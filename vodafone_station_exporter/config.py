@@ -16,7 +16,7 @@ class Config:
     username: str | None = None
     password: str | None = None
     interval: int = 60
-    port: int = 8000
+    port: int = 8018
     host: str = "0.0.0.0"
     docsis_path: str = DEFAULT_DOCSIS_PATH
     snapshot_dir: Path = Path("snapshots")
@@ -49,7 +49,7 @@ class Config:
             username=_optional_str(raw.get("username")),
             password=_optional_str(raw.get("password")),
             interval=int(raw.get("interval", 60)),
-            port=int(raw.get("port", 8000)),
+            port=int(raw.get("port", 8018)),
             host=str(raw.get("host", "0.0.0.0")),
             docsis_path=str(raw.get("docsis_path", DEFAULT_DOCSIS_PATH)),
             snapshot_dir=Path(str(raw.get("snapshot_dir", "snapshots"))),
