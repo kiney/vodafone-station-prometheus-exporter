@@ -51,7 +51,22 @@ class HealthReportTest(unittest.TestCase):
         self.assertIn("downstream lock lost", rendered)
         self.assertIn("implausibly low downstream SNR", rendered)
         self.assertIn("high upstream transmit power", rendered)
+        self.assertIn("degraded upstream modulation", rendered)
         self.assertIn("modulation changed", rendered)
+
+    def test_degraded_upstream_modulation_without_change_is_warned(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "metrics.sqlite3"
+            log = SqliteLog(db_path)
+            start = datetime.fromisoformat("2026-05-25T16:47:00+02:00")
+            log.record(start, _status(upstream_modulation="16-qam", upstream_power=49.0), None)
+            log.record(start + timedelta(hours=1), _status(upstream_modulation="16-qam", upstream_power=49.0), None)
+
+            report = analyze_sqlite(db_path, hours=6)
+            rendered = render_report(report, db_path)
+
+        self.assertEqual(report.status, "WARN")
+        self.assertIn("degraded upstream modulation on channel(s): 5 (16-qam)", rendered)
 
     def test_cli_prints_report_for_database(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

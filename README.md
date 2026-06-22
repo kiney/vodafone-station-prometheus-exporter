@@ -108,16 +108,44 @@ vodafone-station-exporter --debug-login
 
 The diagnostic output is sanitized and does not print the configured password.
 
-Report the health status from a SQLite history:
+Report the health status from a SQLite history. This is a separate installed
+command, not a `vodafone-station-exporter` subcommand:
 
 ```bash
 vodafone-station-report metrics.sqlite3
 vodafone-station-report metrics.sqlite3 --hours 24
 ```
 
-The report summarizes scrape success, channel counts, downstream lock/SNR
-problems, upstream ranging or transmit-power issues, and notable drift or
-modulation changes. It exits with status `1` for a critical report.
+The `--hours` window is relative to the newest scrape in the database, so it is
+useful for checking the most recent outage even if the daemon was not running
+continuously.
+
+The report summarizes:
+
+- scrape success rate and scrape interval
+- downstream channel count, lock loss, low or implausible SNR, and power drift
+- upstream channel count, ranging failures, high transmit power, degraded
+  modulation such as `qpsk`, `8-qam`, `16-qam`, or `32-qam`, modulation changes,
+  and transmit-power drift
+
+Exit status is `1` only for a critical report, for example downstream lock loss
+or a very high scrape failure rate. Warning reports still exit `0` so the tool
+can be used interactively without tripping shell scripts on every marginal cable
+signal.
+
+Example output:
+
+```text
+DOCSIS health report: metrics.sqlite3
+Status: WARN
+Window: 2026-05-25T16:47:29.616808+02:00 to 2026-05-25T17:47:39.103369+02:00
+Scrapes: 2 total, 2 ok, 0 failed (100.0% success)
+Median interval: 60.2m
+Channels: 33 downstream, 5 upstream
+Findings:
+- WARN: high upstream transmit power in 3 sample(s)
+- WARN: degraded upstream modulation on channel(s): 6 (16-qam), 8 (32-qam), 10 (16-qam)
+```
 
 ## HTTP Endpoints
 

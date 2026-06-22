@@ -182,15 +182,29 @@ def _add_upstream_findings(findings: list[Finding], upstream: list[sqlite3.Row])
     if high_power:
         findings.append(Finding("WARN", f"high upstream transmit power in {len(high_power)} sample(s)"))
 
+    degraded_modulation_channels = []
     modulation_changes = []
     power_drifts = []
     for channel_id, rows in _group_by_channel(upstream).items():
         modulations = {row["modulation"] for row in rows if row["modulation"]}
+        degraded_modulations = sorted(
+            modulation for modulation in modulations if _is_degraded_upstream_modulation(modulation)
+        )
+        if degraded_modulations:
+            degraded_modulation_channels.append(f"{channel_id} ({'/'.join(degraded_modulations)})")
         if len(modulations) > 1:
             modulation_changes.append(f"{channel_id} ({len(modulations)} states)")
         drift = _drift(rows, "power_dbmv")
         if drift is not None and abs(drift) >= 1.5:
             power_drifts.append(f"{channel_id} ({drift:+.1f} dB)")
+    if degraded_modulation_channels:
+        findings.append(
+            Finding(
+                "WARN",
+                "degraded upstream modulation on channel(s): "
+                f"{', '.join(degraded_modulation_channels[:8])}",
+            )
+        )
     if modulation_changes:
         findings.append(Finding("INFO", f"upstream modulation changed on channel(s): {', '.join(modulation_changes)}"))
     if power_drifts:
@@ -211,6 +225,13 @@ def _drift(rows: list[sqlite3.Row], column: str) -> float | None:
     if len(values) < 2:
         return None
     return values[-1] - values[0]
+
+
+def _is_degraded_upstream_modulation(value: str) -> bool:
+    normalized = value.strip().lower()
+    if not normalized or normalized == "64-qam":
+        return False
+    return normalized in {"qpsk", "8-qam", "16-qam", "32-qam"}
 
 
 def _status(findings: list[Finding]) -> str:
