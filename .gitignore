@@ -6,3 +6,4 @@ metrics.sqlite3
 snapshots/
 *.egg-info/
 metrics.sqlite3.before-normalized-migration
+podman-build-image.sh
