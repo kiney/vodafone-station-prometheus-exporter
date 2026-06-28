@@ -3,17 +3,19 @@
 Small Python daemon that logs in to a Vodafone Station cable router, scrapes the
 DOCSIS status API, and exposes the latest values as Prometheus metrics.
 
-The exporter also writes DOCSIS text snapshots to `snapshots/` and can store a
-compact scrape history in SQLite.
+The exporter stores a compact scrape history in SQLite. Optional DOCSIS text
+snapshots can be enabled when needed.
 
 ## Status
 
-This currently targets the Vodafone Station web UI/API shape tested on the local
-router:
+The exporter auto-detects the two Vodafone Station web UI families tested so
+far:
 
-- login endpoint: `/api/v1/session/login`
-- DOCSIS endpoint: `/api/v1/sta_docsis_status`
-- authentication: the same salt/PBKDF2 flow used by the router web UI
+- CGA family: `/api/v1/session/login` and `/api/v1/sta_docsis_status`, using
+  the web UI's double-PBKDF2 login
+- ARRIS/TG family: `/php/ajaxSet_Password.php` and
+  `/php/status_docsis_data.php`, using the web UI's PBKDF2/AES-CCM login and
+  CSRF nonce
 
 The parser also keeps support for the manually copied text snapshots in
 `snapshots/`, so older example files remain useful as fixtures.
@@ -68,11 +70,12 @@ password: xxx                  # required for authenticated router API
 interval: 60                   # background scrape interval in seconds
 host: 0.0.0.0                  # Flask bind host
 port: 8018                     # Flask bind port
+snapshots_enabled: false       # set to true to write DOCSIS text snapshots
 snapshot_dir: snapshots        # successful DOCSIS text snapshots
 sqlite_path: metrics.sqlite3   # set to null or "" to disable SQLite logging
 request_timeout: 10            # router HTTP timeout in seconds
 verify_tls: true               # relevant only for HTTPS base_url
-docsis_path: /api/v1/sta_docsis_status  # normally do not change this
+docsis_path: /api/v1/sta_docsis_status  # default enables CGA/TG auto-detection
 ```
 
 Endpoint override:
@@ -81,9 +84,10 @@ Endpoint override:
 docsis_path: /api/v1/sta_docsis_status
 ```
 
-The exporter scrapes exactly this one endpoint. If it returns a login page, an
-HTTP error, or a non-DOCSIS response, the scrape fails with a clear error
-instead of probing fallback URLs.
+When `docsis_path` has its default value, a 404 triggers ARRIS/TG detection and
+the exporter switches to `/php/status_docsis_data.php`. A custom value disables
+that fallback and is scraped exactly as configured. Login pages, other HTTP
+errors, and non-DOCSIS responses fail with a clear error.
 
 ## Usage
 
@@ -175,9 +179,9 @@ docker run --rm \
 ```
 
 The container reads `/config/config.yml` and uses `/data` as its working
-directory, so relative `snapshot_dir` and `sqlite_path` values are written to the
-data volume. Put at least `base_url` and `password` in the mounted config file;
-if `port` is omitted, the exporter listens on `8018`.
+directory, so relative `sqlite_path` values and enabled snapshots are written to
+the data volume. Put at least `base_url` and `password` in the mounted config
+file; if `port` is omitted, the exporter listens on `8018`.
 
 ## Metrics
 
@@ -210,7 +214,21 @@ Channel metrics include labels such as `channel_id`, `channel_type`,
 
 ## Storage
 
-On each successful scrape, a text snapshot is written to:
+SQLite logging is enabled by default through `sqlite_path`. Every scrape attempt
+is recorded in SQLite. The `scrapes` table contains the timestamp, success flag,
+error text, and channel counts. Parsed channel values are stored as rows in
+`downstream_channels` and `upstream_channels`, keyed by `scrape_id`, so values
+such as SNR, power, lock state, and ranging state can be queried directly with
+SQL.
+
+Text snapshots are disabled by default. Enable them explicitly:
+
+```yaml
+snapshots_enabled: true
+snapshot_dir: snapshots
+```
+
+Each successful scrape then writes:
 
 ```text
 snapshots/DOCSIS_<timestamp>
@@ -218,12 +236,6 @@ snapshots/DOCSIS_<timestamp>
 
 The snapshot format matches the older manually copied DOCSIS examples in this
 repository rather than the router's raw JSON API response.
-
-If `sqlite_path` is enabled, every scrape attempt is recorded in SQLite. The
-`scrapes` table contains the timestamp, success flag, error text, and channel
-counts. Parsed channel values are stored as rows in `downstream_channels` and
-`upstream_channels`, keyed by `scrape_id`, so values such as SNR, power, lock
-state, and ranging state can be queried directly with SQL.
 
 ## Prometheus Example
 

@@ -19,6 +19,7 @@ class Config:
     port: int = 8018
     host: str = "0.0.0.0"
     docsis_path: str = DEFAULT_DOCSIS_PATH
+    snapshots_enabled: bool = False
     snapshot_dir: Path = Path("snapshots")
     sqlite_path: Path | None = Path("metrics.sqlite3")
     request_timeout: float = 10.0
@@ -52,6 +53,7 @@ class Config:
             port=int(raw.get("port", 8018)),
             host=str(raw.get("host", "0.0.0.0")),
             docsis_path=str(raw.get("docsis_path", DEFAULT_DOCSIS_PATH)),
+            snapshots_enabled=bool(raw.get("snapshots_enabled", False)),
             snapshot_dir=Path(str(raw.get("snapshot_dir", "snapshots"))),
             sqlite_path=db_path,
             request_timeout=float(raw.get("request_timeout", 10.0)),

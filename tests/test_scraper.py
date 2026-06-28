@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import unittest
+
+from cryptography.hazmat.primitives.ciphers.aead import AESCCM
 
 from vodafone_station_exporter.config import Config
 from vodafone_station_exporter.scraper import RouterScraper
@@ -93,6 +96,76 @@ class RouterScraperTest(unittest.TestCase):
         self.assertEqual(session.get_urls, ["http://router.test/custom-docsis"])
         self.assertEqual(session.post_urls, [])
 
+    def test_default_api_404_falls_back_to_tg_login_and_docsis_page(self) -> None:
+        password = "secret"
+        salt = "0011223344556677"
+        iv = "8899aabbccddeeff"
+        session_id = "0123456789abcdef"
+        key = hashlib.pbkdf2_hmac(
+            "sha256", password.encode(), bytes.fromhex(salt), 1000, dklen=16
+        )
+        encrypted_nonce = AESCCM(key).encrypt(
+            bytes.fromhex(iv), b"csrf-value", b"nonce"
+        ).hex()
+        login_page = f"""
+            <script>
+            var currentSessionId = '{session_id}';
+            var myIv = '{iv}';
+            var mySalt = '{salt}';
+            var loginUserName = 'admin';
+            </script>
+        """
+        docsis_page = """
+            var json_dsData = [{"ChannelID":"11","ChannelType":"SC-QAM","Frequency":"642 MHz","Modulation":"256-QAM","PowerLevel":"11.0 dBmV/71.0 dBµV","SNRLevel":"41.1 dB","LockStatus":"Locked"}];
+            var json_usData = [{"ChannelID":"8","ChannelType":"ATDMA","Frequency":"45 MHz","Modulation":"64-QAM","PowerLevel":"43.5 dBmV/103.5 dBµV","LockStatus":"ACTIVE"}];
+        """
+        scraper = RouterScraper(
+            Config.from_mapping(
+                {"base_url": "http://router.test/", "password": password}
+            )
+        )
+        session = FakeSession(
+            gets=[
+                FakeResponse("not found", status_code=404, content_type="text/html"),
+                FakeResponse(login_page, content_type="text/html"),
+                FakeResponse(docsis_page, content_type="text/html"),
+                FakeResponse(docsis_page, content_type="text/html"),
+            ],
+            posts=[
+                FakeResponse(
+                    {"p_status": "AdminMatch", "encryptData": encrypted_nonce},
+                    content_type="application/json",
+                ),
+                FakeResponse({"LoginStatus": "yes"}, content_type="application/json"),
+            ],
+        )
+        scraper.session = session
+
+        result = scraper.fetch_docsis()
+        second_result = scraper.fetch_docsis()
+
+        self.assertEqual(result.url, "http://router.test/php/status_docsis_data.php")
+        self.assertEqual(second_result.url, result.url)
+        payload = json.loads(result.body)
+        self.assertEqual(payload["data"]["downstream"][0]["ChannelID"], "11")
+        self.assertEqual(
+            session.get_urls,
+            [
+                "http://router.test/api/v1/sta_docsis_status",
+                "http://router.test/",
+                "http://router.test/php/status_docsis_data.php",
+                "http://router.test/php/status_docsis_data.php",
+            ],
+        )
+        self.assertEqual(
+            session.post_urls,
+            [
+                "http://router.test/php/ajaxSet_Password.php",
+                "http://router.test/php/ajaxSet_Session.php",
+            ],
+        )
+        self.assertEqual(session.headers["csrfNonce"], "csrf-value")
+
 
 class FakeSession:
     def __init__(self, gets: list[FakeResponse], posts: list[FakeResponse]) -> None:
@@ -101,6 +174,7 @@ class FakeSession:
         self.get_urls: list[str] = []
         self.post_urls: list[str] = []
         self.headers: dict[str, str] = {}
+        self.params: dict[str, str] = {}
 
     def get(self, url: str, **kwargs: object) -> "FakeResponse":
         self.get_urls.append(url)

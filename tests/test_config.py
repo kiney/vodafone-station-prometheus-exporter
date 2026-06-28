@@ -16,6 +16,18 @@ class ConfigTest(unittest.TestCase):
 
         self.assertEqual(config.port, 9000)
 
+    def test_snapshots_are_disabled_by_default(self) -> None:
+        config = Config.from_mapping({"base_url": "http://192.168.0.1/"})
+
+        self.assertIs(config.snapshots_enabled, False)
+
+    def test_snapshots_can_be_enabled(self) -> None:
+        config = Config.from_mapping(
+            {"base_url": "http://192.168.0.1/", "snapshots_enabled": True}
+        )
+
+        self.assertIs(config.snapshots_enabled, True)
+
 
 if __name__ == "__main__":
     unittest.main()

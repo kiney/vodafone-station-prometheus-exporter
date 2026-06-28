@@ -42,7 +42,8 @@ class ExporterState:
             status = _parse_raw_status(raw)
             if status.total_channels == 0:
                 raise ValueError("DOCSIS page fetched but no channels were parsed")
-            write_snapshot(self.config.snapshot_dir, scraped_at, render_snapshot(status))
+            if self.config.snapshots_enabled:
+                write_snapshot(self.config.snapshot_dir, scraped_at, render_snapshot(status))
             LOGGER.info("scraped %s DOCSIS channels from %s", status.total_channels, result.url)
         except Exception as exc:
             error = str(exc)

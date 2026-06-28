@@ -102,6 +102,44 @@ class DocsisParserTest(unittest.TestCase):
         self.assertEqual(status.upstream[0].channel_id, "10")
         self.assertIs(status.upstream[0].ranging_success, True)
 
+    def test_parse_tg3442_embedded_json_shape(self) -> None:
+        status = parse_docsis_json(
+            {
+                "data": {
+                    "downstream": [
+                        {
+                            "ChannelID": "11",
+                            "ChannelType": "SC-QAM",
+                            "Frequency": "642 MHz",
+                            "Modulation": "256-QAM",
+                            "PowerLevel": "11.0 dBmV/71.0 dBµV",
+                            "SNRLevel": "41.1 dB",
+                            "LockStatus": "Locked",
+                        }
+                    ],
+                    "upstream": [
+                        {
+                            "ChannelID": "8",
+                            "ChannelType": "ATDMA",
+                            "Frequency": "45 MHz",
+                            "Modulation": "64-QAM",
+                            "PowerLevel": "43.5 dBmV/103.5 dBµV",
+                            "LockStatus": "OPERATE",
+                        }
+                    ],
+                }
+            }
+        )
+
+        self.assertEqual(status.downstream[0].channel_id, "11")
+        self.assertEqual(status.downstream[0].power_dbmv, 11.0)
+        self.assertEqual(status.downstream[0].power_dbuv, 71.0)
+        self.assertEqual(status.downstream[0].snr_db, 41.1)
+        self.assertIs(status.downstream[0].locked, True)
+        self.assertEqual(status.upstream[0].channel_id, "8")
+        self.assertEqual(status.upstream[0].power_dbmv, 43.5)
+        self.assertIs(status.upstream[0].ranging_success, True)
+
 
 if __name__ == "__main__":
     unittest.main()

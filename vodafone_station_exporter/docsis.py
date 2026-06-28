@@ -116,7 +116,7 @@ def _parse_downstream(line: str) -> DownstreamChannel | None:
 
 
 def _downstream_from_mapping(item: dict[str, Any]) -> DownstreamChannel:
-    power_dbmv, power_dbuv = _split_power(str(_value(item, "power", "Power", "power_ofdm", "signalStrength", "SignalStrength", "rxPower", default="")))
+    power_dbmv, power_dbuv = _split_power(str(_value(item, "power", "Power", "power_ofdm", "PowerLevel", "signalStrength", "SignalStrength", "rxPower", default="")))
     power_dbuv = _with_dbuv(power_dbmv, power_dbuv)
     start_frequency = _value(item, "start_frequency", "startFrequency", default=None)
     end_frequency = _value(item, "end_frequency", "endFrequency", default=None)
@@ -127,7 +127,7 @@ def _downstream_from_mapping(item: dict[str, Any]) -> DownstreamChannel:
         modulation=str(_value(item, "modulation", "Modulation", "FFT", "FFT_ofdm", default="")),
         power_dbmv=_number_value(_value(item, "powerDbmv", "power_dbmv", "PowerDbmv", default=None), power_dbmv),
         power_dbuv=_number_value(_value(item, "powerDbuv", "power_dbuv", "PowerDbuv", default=None), power_dbuv),
-        snr_db=_number_value(_value(item, "snr", "SNR", "SNR_ofdm", "mer", "MER", "snrMer", default=None), None),
+        snr_db=_number_value(_value(item, "snr", "SNR", "SNR_ofdm", "SNRLevel", "mer", "MER", "snrMer", default=None), None),
         locked=_is_yes(str(_value(item, "lockStatus", "LockStatus", "locked", "locked_ofdm", "Locked", default=""))),
         lock_status=str(_value(item, "lockStatus", "LockStatus", "locked", "locked_ofdm", "Locked", default="")),
     )
@@ -151,9 +151,9 @@ def _parse_upstream(line: str) -> UpstreamChannel | None:
 
 
 def _upstream_from_mapping(item: dict[str, Any]) -> UpstreamChannel:
-    power_dbmv, power_dbuv = _split_power(str(_value(item, "power", "Power", "signalStrength", "SignalStrength", "txPower", default="")))
+    power_dbmv, power_dbuv = _split_power(str(_value(item, "power", "Power", "PowerLevel", "signalStrength", "SignalStrength", "txPower", default="")))
     power_dbuv = _with_dbuv(power_dbmv, power_dbuv)
-    ranging_status = str(_value(item, "rangingStatus", "RangingStatus", "ranging", "Ranging", default=""))
+    ranging_status = str(_value(item, "rangingStatus", "RangingStatus", "ranging", "Ranging", "LockStatus", "locked", default=""))
     start_frequency = _value(item, "start_frequency", "startFrequency", default=None)
     end_frequency = _value(item, "end_frequency", "endFrequency", default=None)
     return UpstreamChannel(
@@ -163,7 +163,7 @@ def _upstream_from_mapping(item: dict[str, Any]) -> UpstreamChannel:
         modulation=str(_value(item, "modulation", "Modulation", "FFT", default="")),
         power_dbmv=_number_value(_value(item, "powerDbmv", "power_dbmv", "PowerDbmv", default=None), power_dbmv),
         power_dbuv=_number_value(_value(item, "powerDbuv", "power_dbuv", "PowerDbuv", default=None), power_dbuv),
-        ranging_success=ranging_status.casefold() in {"erfolgreich", "success", "successful", "completed"},
+        ranging_success=ranging_status.casefold() in {"erfolgreich", "success", "successful", "completed", "active", "locked", "operate"},
         ranging_status=ranging_status,
     )
 
